@@ -7,6 +7,6 @@ services:
     command: ./startup.sh
     volumes:
       - .:/app
+      - ./tmp:/app/tmp
     ports:
       - "3000:3000"
-    restart: always

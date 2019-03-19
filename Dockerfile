@@ -15,6 +15,5 @@ RUN pip install -r requirements.txt
 
 COPY . /app
 
-RUN mkdir /app/tmp
 
 CMD [ "./startup.sh" ]
