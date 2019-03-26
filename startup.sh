@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python timelapse.py
+python timelapse-part-1.py
