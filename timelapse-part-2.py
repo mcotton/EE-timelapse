@@ -1,5 +1,6 @@
 
 import os, os.path, sys
+import math, subprocess
 
 from EagleEye import *
 
@@ -21,7 +22,7 @@ if CAMERA_ESN == "":
 
 # what time range are we looking for
 START_TIME = ""
-END_TIME = ""
+END_TIME =   ""
 
 if START_TIME == "" or END_TIME == "":
     print("Update script with a start and end time")
@@ -44,8 +45,6 @@ this_camera.get_preview_list(instance=een, start_timestamp=START_TIME, end_times
 number_of_previews = len(this_camera.previews)
 steps = number_of_previews / VIDEO_LENGTH
 
-import math
-steps = math.ceil(steps)
 
 print( f"Total images: {number_of_previews}" )
 print( f"Length of video: {VIDEO_LENGTH}" )
@@ -54,18 +53,28 @@ print( f"Steps: {steps}" )
 # check if there are less images that needed for video_length
 input_fps = 10
 
-if steps == 1:
+if steps <= 1:
+    # less than target fps, lower fps
     scale_factor = VIDEO_LENGTH / number_of_previews
     print( f"Scale Factor: {scale_factor}" )
-    fps_steps = math.ceil(10 / scale_factor)
+    
+    fps_steps = math.ceil(input_fps / scale_factor)
     print( f"FPS steps: {fps_steps}" )
+    
+    input_fps = fps_steps
+    steps = math.ceil( steps )
+
+else:
+    steps = math.floor( steps )
+
+
 
 # Only download the iamges that are going to be used.
 for pre in sorted(this_camera.previews)[0::steps]:
     if os.path.isfile(f"tmp/{this_camera.camera_id}-{pre}.jpg") == False:
+        local_filename = f"tmp/{this_camera.camera_id}-{pre}.jpg"
         img = this_camera.download_image(instance=een, timestamp=pre, asset_class="thumb")
         if img:
-            local_filename = f"tmp/{this_camera.camera_id}-{pre}.jpg"
             open(local_filename, 'wb').write(img)
         else: 
             print(f"{local_filename} failed")
@@ -77,6 +86,10 @@ for pre in sorted(this_camera.previews)[0::steps]:
 # Let's go ahead and call ffmpeg to make the images into a movie
 # Assumes that you've got ffmpeg installed or are using the included Docker container
 
-import subprocess
+print( f"Total images: {number_of_previews}" )
+print( f"Length of video: {VIDEO_LENGTH}" )
+print( f"Steps: {steps}" )
+print( f"input_fps: {input_fps}" )
 
-subprocess.run(["ffmpeg", "-framerate", str(fps_steps), "-pattern_type", "glob", "-i", f"tmp/{CAMERA_ESN}-*.jpg", "-y", "-r", "30", "-pix_fmt", "yuv420p", f"tmp/{CAMERA_ESN}.mp4"])
+
+subprocess.run(["ffmpeg", "-framerate", str(input_fps), "-pattern_type", "glob", "-i", f"tmp/{CAMERA_ESN}-*.jpg", "-y", "-r", "30", "-pix_fmt", "yuv420p", f"tmp/{CAMERA_ESN}.mp4"])
